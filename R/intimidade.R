@@ -23,7 +23,7 @@ conta_macs <- function(macs_vistos, intervalo = 5) {
     library(lubridate)
     macs_vistos %>% 
         mutate(dia = floor_date(t, unit = "day")) %>% 
-        group_by(periodo = floor_date(t, unit = "hour") + floor(minute(t)/intervalo)*intervalo) %>%
+        group_by(periodo = floor_date(t, unit = "hour") + minutes(floor(minute(t)/intervalo)*intervalo)) %>%
         distinct(periodo, mac, .keep_all = TRUE) %>% 
         count() %>% 
         return()

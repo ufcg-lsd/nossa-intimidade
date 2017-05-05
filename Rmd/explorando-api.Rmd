@@ -76,7 +76,7 @@ vistos = vistos %>%
 ```
 
 ```{r "ao longo do dia"}
-contagem = conta_macs(vistos, intervalo)
+contagem = conta_macs(vistos, 5)
 
 p = contagem %>% 
     ggplot(aes(x = periodo, y = n)) + 
@@ -84,5 +84,12 @@ p = contagem %>%
 p
 #library(plotly)
 #ggplotly(p)
+```
+
+
+```{r}
+contagem %>% 
+    ggplot(aes(x = periodo, y = n, group = )) + 
+    geom_line()
 ```
 
