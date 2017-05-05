@@ -14,6 +14,8 @@ library(zoo)
 library(silgelib)
 theme_set(theme_roboto())
 # These fonts must be installed locally on your computer for this theme to work: https://fonts.google.com/specimen/Roboto+Condensed and https://fonts.google.com/specimen/Roboto. 
+
+source('../R/intimidade.R')
 ```
 
 # Counts
@@ -74,6 +76,13 @@ vistos = vistos %>%
 ```
 
 ```{r "ao longo do dia"}
+contagem = conta_macs(vistos, intervalo)
 
+p = contagem %>% 
+    ggplot(aes(x = periodo, y = n)) + 
+    geom_line()
+p
+#library(plotly)
+#ggplotly(p)
 ```
 
