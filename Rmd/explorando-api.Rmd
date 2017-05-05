@@ -1,0 +1,30 @@
+---
+title: "Explorando a APi"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(jsonlite)
+theme_set(theme_linedraw())
+#devtools::install_github("juliasilge/silgelib")
+
+```
+
+```{r}
+recentes = fromJSON("http://150.165.85.12:41205/get_today_people_count") %>% 
+    as.tibble() %>% 
+    mutate(t = ymd_hms(timestamps))
+```
+
+
+```{r}
+recentes %>% 
+    ggplot(aes(x = t, y = data)) + 
+    geom_point() + 
+    geom_line()
+```
+
