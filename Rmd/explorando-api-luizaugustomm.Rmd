@@ -1,0 +1,52 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r, echo=FALSE}
+
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(jsonlite)
+
+source("R/intimidade.R")
+
+```
+
+```{r}
+last_month <- fromJSON("http://150.165.85.12:41205/get_last_minutes?m=43200")
+
+last_month_LSD <- last_month %>%
+    filter(identifier == "LSD") %>%
+    mutate(t = ymd_hms(timestamp)) %>%
+    select(-3, -identifier)
+
+macs_perenes <- get_macs_perenes(last_month_LSD)
+
+last_filtered_month_LSD <- last_month_LSD %>%
+    filter(!(mac %in% macs_perenes$mac))
+
+```
+
+
+```{r}
+early_birds <- filtra_diferentoes(last_filtered_month_LSD, 4, 8)
+night_owls <- rbind(filtra_diferentoes(last_filtered_month_LSD, 20, 23),
+                    filtra_diferentoes(last_filtered_month_LSD, 0, 4))
+
+filtra_presentes(early_birds)
+filtra_presentes(night_owls)
+```
+
+```{r}
+early_workers <- filtra_diferentoes(last_filtered_month_LSD, 4, 16)
+night_workers <- rbind(filtra_diferentoes(last_filtered_month_LSD, 17, 23),
+                    filtra_diferentoes(last_filtered_month_LSD, 0, 4))
+
+filtra_atividade(early_workers)
+filtra_atividade(night_workers)
+```
+
+
+

@@ -28,3 +28,26 @@ conta_macs <- function(macs_vistos, intervalo = 5) {
         count() %>% 
         return()
 }
+
+
+filtra_diferentoes <- function(dados, hora.inicio, hora.fim) {
+    diferentoes <- dados %>%
+        filter(hour(t) >= hora.inicio, hour(t) < hora.fim) %>%
+        group_by(mac, wday(t)) %>%
+        summarise(presencas = n()) %>%
+        filter(presencas > 1)
+    names(diferentoes) <- c('mac', 'dia', 'presencas')
+    return(diferentoes)
+}
+
+filtra_presentes <- function(diferentoes) {
+    diferentoes.presentes <- count(diferentoes, "mac")
+    return(diferentoes.presentes)
+}
+
+filtra_atividade <- function(diferentoes) {
+    atividade <- diferentoes %>%
+        group_by(dia) %>%
+        summarise(npessoas = n())
+    return(atividade)
+}
