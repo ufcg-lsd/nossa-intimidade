@@ -16,6 +16,8 @@ theme_set(theme_roboto())
 # These fonts must be installed locally on your computer for this theme to work: https://fonts.google.com/specimen/Roboto+Condensed and https://fonts.google.com/specimen/Roboto. 
 ```
 
+# Counts
+
 ```{r ler}
 counts_raw = fromJSON("http://150.165.85.12:41205/get_today_people_count") %>% 
     as.tibble() 
@@ -51,8 +53,27 @@ counts %>%
          subtitle = "Quantas pesssoas ao longo do tempo?") 
 ```
 
+# Por endereço
 
-```{r}
-vistos = fromJSON("http://150.165.85.12:41205/get_last_minutes?m=21600") %>% 
-    as.tibble()
+```{r carrega}
+vistos_raw = fromJSON("http://150.165.85.12:41205/get_last_minutes?m=129600") %>% 
+    as.tibble() %>% 
+    filter(identifier == "LSD") %>% 
+    select(-3)
+
+vistos = vistos_raw %>% 
+    mutate(t = ymd_hms(timestamp)) %>% 
+    select(-timestamp)
 ```
+
+```{r filtra}
+perenes = get_macs_perenes(vistos)
+
+vistos = vistos %>% 
+    filter(!(mac %in% perenes$mac))
+```
+
+```{r "ao longo do dia"}
+
+```
+
