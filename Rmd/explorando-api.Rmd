@@ -9,21 +9,22 @@ editor_options:
 library(tidyverse)
 library(lubridate)
 library(jsonlite)
-theme_set(theme_roboto())
-library(silgelib)
 #devtools::install_github("juliasilge/silgelib")
+library(silgelib)
+theme_set(theme_roboto())
 # These fonts must be installed locally on your computer for this theme to work: https://fonts.google.com/specimen/Roboto+Condensed and https://fonts.google.com/specimen/Roboto. 
 ```
 
-```{r}
+```{r ler}
 recentes_raw = fromJSON("http://150.165.85.12:41205/get_today_people_count") %>% 
     as.tibble() 
 
-
-recentes = recentes %>% 
+recentes = recentes_raw %>% 
     transmute(t = ymd_hms(timestamps), 
               macs = data)
+```
 
+```{r filtrar}
 macs_fixos = recentes %>% 
     filter(hour(t) %in% 1:4) %>% 
     summarise(fixos = quantile(macs, 0.8)[[1]])
@@ -34,6 +35,7 @@ recentes  = recentes %>%
     ungroup()
 ```
 
+# Quantos somos?
 
 ```{r}
 recentes %>% 
