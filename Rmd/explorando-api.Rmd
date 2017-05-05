@@ -17,20 +17,20 @@ theme_set(theme_roboto())
 ```
 
 ```{r ler}
-recentes_raw = fromJSON("http://150.165.85.12:41205/get_today_people_count") %>% 
+counts_raw = fromJSON("http://150.165.85.12:41205/get_today_people_count") %>% 
     as.tibble() 
 
-recentes = recentes_raw %>% 
+counts = counts_raw %>% 
     transmute(t = ymd_hms(timestamps), 
               macs = data)
 ```
 
 ```{r filtrar}
-macs_fixos = recentes %>% 
+macs_fixos = counts %>% 
     filter(hour(t) %in% 1:4) %>% 
     summarise(fixos = quantile(macs, 0.8)[[1]])
 
-recentes = recentes %>% 
+counts = counts %>% 
     group_by(t) %>% 
     mutate(pessoas = max(0, macs - macs_fixos$fixos)) %>% 
     ungroup() %>% 
@@ -41,16 +41,18 @@ recentes = recentes %>%
 # Quantos somos?
 
 ```{r}
-recentes %>% 
+counts %>% 
+    filter(!is.na(pessoas_mm)) %>% 
     ggplot(aes(x = t, y = pessoas_mm)) + 
     geom_line(color = "grey") + 
     geom_point(color = "darkred") + 
     #geom_smooth(method = "loess", se = F) + 
-    labs(title = "Movimento, pessoas, vida",
+    labs(title = "Movimento, pessoas e vida no hall",
          subtitle = "Quantas pesssoas ao longo do tempo?") 
 ```
 
 
 ```{r}
-
+vistos = fromJSON("http://150.165.85.12:41205/get_last_minutes?m=21600") %>% 
+    as.tibble()
 ```
