@@ -9,6 +9,7 @@ editor_options:
 library(tidyverse)
 library(lubridate)
 library(jsonlite)
+library(zoo)
 #devtools::install_github("juliasilge/silgelib")
 library(silgelib)
 theme_set(theme_roboto())
@@ -29,19 +30,22 @@ macs_fixos = recentes %>%
     filter(hour(t) %in% 1:4) %>% 
     summarise(fixos = quantile(macs, 0.8)[[1]])
 
-recentes  = recentes %>% 
+recentes = recentes %>% 
     group_by(t) %>% 
     mutate(pessoas = max(0, macs - macs_fixos$fixos)) %>% 
-    ungroup()
+    ungroup() %>% 
+    mutate(pessoas_mm = rollapply(pessoas, 3 , mean, align='right', fill=NA))
+
 ```
 
 # Quantos somos?
 
 ```{r}
 recentes %>% 
-    ggplot(aes(x = t, y = pessoas)) + 
-    geom_point() + 
-    geom_smooth(method = "loess", se = F) + 
+    ggplot(aes(x = t, y = pessoas_mm)) + 
+    geom_line(color = "grey") + 
+    geom_point(color = "darkred") + 
+    #geom_smooth(method = "loess", se = F) + 
     labs(title = "Movimento, pessoas, vida",
          subtitle = "Quantas pesssoas ao longo do tempo?") 
 ```
