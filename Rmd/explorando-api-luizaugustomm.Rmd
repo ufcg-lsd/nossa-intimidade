@@ -10,7 +10,7 @@ library(ggplot2)
 library(lubridate)
 library(jsonlite)
 
-source("R/intimidade.R")
+source("../R/intimidade.R")
 
 ```
 
@@ -48,5 +48,61 @@ filtra_atividade(early_workers)
 filtra_atividade(night_workers)
 ```
 
+```{r}
+
+db <- read.csv('../data/db_lsd_sem_perenes.csv')
+
+intimidade <- read.csv('../data/intimidade.csv')
+names(intimidade) <- c('timestamp', 'nome', 'mac', 'mensagem')
+intimidade <- intimidade %>%
+    select(-1) %>%
+    mutate(mac = tolower(mac))
+```
 
 
+```{r}
+atividade_conhecidos <- conhecidos %>% 
+    mutate(t = ymd_hms(t)) %>%
+    group_by(nome, dia_f = floor_date(t, unit = "day")) %>%
+    filter(t == first(t)) %>% 
+    ungroup() %>% 
+    mutate(dia = wday(t)) %>%
+    group_by(nome, dia) %>% 
+    count()
+
+atividade_por_pessoa <- atividade_conhecidos %>%
+    group_by(nome) %>%
+    summarise(somadias = sum(n))
+```
+
+```{r}
+ atividade_conhecidos %>%
+    merge(atividade_por_pessoa, by = 'nome') %>%
+    mutate(taxa_atividade = n / somadias) %>%
+    ggplot(aes(x = dia, y = taxa_atividade)) + 
+    geom_line() + facet_wrap(~nome)
+```
+
+
+```{r}
+atividade_conhecidos <- conhecidos %>% 
+    mutate(t = ymd_hms(t)) %>%
+    group_by(mensagem, dia_f = floor_date(t, unit = "day")) %>%
+    filter(t == first(t)) %>% 
+    ungroup() %>% 
+    mutate(dia = wday(t)) %>%
+    group_by(mensagem, dia) %>% 
+    count()
+
+atividade_por_pessoa <- atividade_conhecidos %>%
+    group_by(mensagem) %>%
+    summarise(somadias = sum(n))
+```
+
+```{r}
+ atividade_conhecidos %>%
+    merge(atividade_por_pessoa, by = 'mensagem') %>%
+    mutate(taxa_atividade = n / somadias) %>%
+    ggplot(aes(x = dia, y = taxa_atividade)) + 
+    geom_line() + facet_wrap(~mensagem) + labs(title = "Dias favoritos pra visitar o lab", y = 'Frequência (%)', x = "Dia da semana") + theme_minimal()
+```
