@@ -29,20 +29,30 @@ conta_macs <- function(macs_vistos, intervalo = 5) {
         return()
 }
 
-
-filtra_diferentoes <- function(dados, hora.inicio, hora.fim) {
-    diferentoes <- dados %>%
-        filter(hour(t) >= hora.inicio, hour(t) < hora.fim) %>%
-        group_by(mac, wday(t)) %>%
-        summarise(presencas = n()) %>%
-        filter(presencas > 1)
-    names(diferentoes) <- c('mac', 'dia', 'presencas')
-    return(diferentoes)
+filtra_pessoas_por_horario <- function(df, hora.inicio, hora.fim) {
+    pessoas_no_horario <- df %>%
+        filter(hour(t) >= hora.inicio, hour(t) < hora.fim)
+    return(pessoas_no_horario)
 }
 
-filtra_presentes <- function(diferentoes) {
-    diferentoes.presentes <- count(diferentoes, "mac")
-    return(diferentoes.presentes)
+agrupa_presencas_por_dia_da_semana <- function(df) {
+    presenca_por_dia <- df %>%
+        group_by(mac, dia_f = floor_date(t, unit = "day")) %>%
+        filter(t == first(t)) %>% 
+        ungroup() %>% 
+        mutate(dia = wday(t)) %>%
+        group_by(mac, dia) %>% 
+        summarise(presenca = n()) %>%
+        filter(presenca > 1)
+    return(presenca_por_dia)
+}
+
+filtra_diferentoes <- function(df) {
+    diferentoes <- df %>%
+        group_by(mac) %>%
+        summarise(soma.presencas = sum(presenca))
+    corte <- quantile(diferentoes$soma.presencas, probs = c(.8))
+    return(filter(diferentoes, soma.presencas >= corte))
 }
 
 filtra_atividade <- function(diferentoes) {

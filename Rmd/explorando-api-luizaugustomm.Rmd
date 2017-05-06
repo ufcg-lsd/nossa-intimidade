@@ -3,85 +3,141 @@ title: "R Notebook"
 output: html_notebook
 ---
 
-```{r, echo=FALSE}
+```{r, message=FALSE, warning=FALSE, include=FALSE}
 
-library(dplyr)
-library(ggplot2)
+library(tidyverse)
 library(lubridate)
 library(jsonlite)
+#devtools::install_github("juliasilge/silgelib")
+library(silgelib)
+library(knitr)
+theme_set(theme_roboto())
 
 source("../R/intimidade.R")
 
+opts_knit$set(cache = F)
 ```
 
-```{r}
-last_month <- fromJSON("http://150.165.85.12:41205/get_last_minutes?m=43200")
-
-last_month_LSD <- last_month %>%
-    filter(identifier == "LSD") %>%
-    mutate(t = ymd_hms(timestamp)) %>%
-    select(-3, -identifier)
-
-macs_perenes <- get_macs_perenes(last_month_LSD)
-
-last_filtered_month_LSD <- last_month_LSD %>%
-    filter(!(mac %in% macs_perenes$mac))
-
-```
-
-
-```{r}
-early_birds <- filtra_diferentoes(last_filtered_month_LSD, 4, 8)
-night_owls <- rbind(filtra_diferentoes(last_filtered_month_LSD, 20, 23),
-                    filtra_diferentoes(last_filtered_month_LSD, 0, 4))
-
-filtra_presentes(early_birds)
-filtra_presentes(night_owls)
-```
-
-```{r}
-early_workers <- filtra_diferentoes(last_filtered_month_LSD, 4, 16)
-night_workers <- rbind(filtra_diferentoes(last_filtered_month_LSD, 17, 23),
-                    filtra_diferentoes(last_filtered_month_LSD, 0, 4))
-
-filtra_atividade(early_workers)
-filtra_atividade(night_workers)
-```
+Carrega os dados
 
 ```{r}
 
-db <- read.csv('../data/db_lsd_sem_perenes.csv')
+db <- read.csv("../data/db_lsd_sem_perenes.csv") %>%
+    mutate(t = ymd_hms(t))
 
-intimidade <- read.csv('../data/intimidade.csv')
-names(intimidade) <- c('timestamp', 'nome', 'mac', 'mensagem')
+intimidade <- read.csv("../data/intimidade.csv")
+names(intimidade) <- c("timestamp", "nome", "mac", "mensagem")
 intimidade <- intimidade %>%
     select(-1) %>%
     mutate(mac = tolower(mac))
+
+conhecidos <- merge(db, intimidade, by = "mac")
+dias_semana <- c("Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab")
+
+```
+
+Identifica os madrugões e corujões 
+
+```{r}
+
+madrugoes <- db %>%
+    filtra_pessoas_por_horario(4, 8) %>%
+    agrupa_presencas_por_dia_da_semana() %>%
+    filtra_diferentoes()
+
+
+c1 <- filtra_pessoas_por_horario(db, 20, 24)
+c2 <- filtra_pessoas_por_horario(db, 0, 4)
+corujoes <- rbind(c1, c2) %>%
+    agrupa_presencas_por_dia_da_semana() %>%
+    filtra_diferentoes()
+remove(c1, c2)
+
+```
+
+
+Merge com intimidade
+
+```{r}
+madrugoes.conhecidos <- merge(madrugoes, intimidade, by = "mac")
+corujoes.conhecidos <- merge(corujoes, intimidade, by = "mac")
+```
+
+
+
+```{r}
+conhecidos_por_semana <- conhecidos %>%
+    agrupa_presencas_por_dia_da_semana() %>%
+    merge(intimidade, by = "mac")
+
+atividade_semanal <- conhecidos_por_semana %>%
+    group_by(mac) %>%
+    summarise(presenca.total = sum(presenca))
+
+conhecidos_por_semana %>%
+    merge(atividade_semanal, by = "mac") %>%
+    mutate(proporcao.presenca = presenca / presenca.total) %>%
+    mutate(dia = factor(dia, levels = 1:7, labels = dias_semana)) %>%
+    ggplot(aes(x = dia, y = proporcao.presenca, group = mac, fill = mensagem)) + 
+    geom_area() + theme(legend.position = "none") + facet_wrap(~mensagem) + labs(title = "Ícones da presença", x = "Dia da semana", y = "Proporção da presença")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+trabalhadores_diurnos <- db %>%
+    filtra_pessoas_por_horario(6, 18) %>%
+    agrupa_presencas_por_dia_da_semana() %>%
+    merge(intimidade, by = "mac")
+
+trabalhadores_noturnos <- db %>%
+    filtra_pessoas_por_horario(18, 24) %>%
+    agrupa_presencas_por_dia_da_semana() %>%
+    merge(intimidade, by = "mac")
 ```
 
 
 ```{r}
-atividade_conhecidos <- conhecidos %>% 
-    mutate(t = ymd_hms(t)) %>%
-    group_by(nome, dia_f = floor_date(t, unit = "day")) %>%
-    filter(t == first(t)) %>% 
-    ungroup() %>% 
-    mutate(dia = wday(t)) %>%
-    group_by(nome, dia) %>% 
-    count()
+atividade_semanal_diurna <- trabalhadores_diurnos %>%
+    group_by(mac) %>%
+    summarise(presenca.total = sum(presenca))
 
-atividade_por_pessoa <- atividade_conhecidos %>%
-    group_by(nome) %>%
-    summarise(somadias = sum(n))
+trabalhadores_diurnos %>%
+    merge(atividade_semanal_diurna, by = "mac") %>%
+    mutate(proporcao.presenca = presenca / presenca.total) %>%
+    mutate(dia = factor(dia, levels = 1:7, labels = dias_semana)) %>%
+    ggplot(aes(x = dia, y = proporcao.presenca, group = mac, fill = mensagem)) + 
+    geom_area() + theme(legend.position = "none") + facet_wrap(~mensagem) + labs(title = "Ícones da presença diurna", x = "Dia da semana", y = "Proporção da presença")
 ```
 
 ```{r}
- atividade_conhecidos %>%
-    merge(atividade_por_pessoa, by = 'nome') %>%
-    mutate(taxa_atividade = n / somadias) %>%
-    ggplot(aes(x = dia, y = taxa_atividade)) + 
-    geom_line() + facet_wrap(~nome)
+atividade_semanal_noturna <- trabalhadores_noturnos %>%
+    group_by(mac) %>%
+    summarise(presenca.total = sum(presenca))
+
+trabalhadores_noturnos %>%
+    merge(atividade_semanal_noturna, by = "mac") %>%
+    mutate(proporcao.presenca = presenca / presenca.total) %>%
+    mutate(dia = factor(dia, levels = 1:7, labels = dias_semana)) %>%
+    ggplot(aes(x = dia, y = proporcao.presenca, group = mac, fill = mensagem)) + 
+    geom_area() + theme(legend.position = "none") + facet_wrap(~mensagem) + labs(title = "Ícones da presença noturna", x = "Dia da semana", y = "Proporção da presença")
 ```
+
+
 
 
 ```{r}
@@ -101,8 +157,8 @@ atividade_por_pessoa <- atividade_conhecidos %>%
 
 ```{r}
  atividade_conhecidos %>%
-    merge(atividade_por_pessoa, by = 'mensagem') %>%
+    merge(atividade_por_pessoa, by = "mensagem") %>%
     mutate(taxa_atividade = n / somadias) %>%
     ggplot(aes(x = dia, y = taxa_atividade)) + 
-    geom_line() + facet_wrap(~mensagem) + labs(title = "Dias favoritos pra visitar o lab", y = 'Frequência (%)', x = "Dia da semana") + theme_minimal()
+    geom_line() + facet_wrap(~mensagem) + labs(title = "Dias favoritos pra visitar o lab", y = "Frequência (%)", x = "Dia da semana") + theme_minimal()
 ```
