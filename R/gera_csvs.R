@@ -22,3 +22,14 @@ for (f in list.files("..", "db_split_*")) {
     em_csv = le_parte(x)
     write_csv(em_csv, paste0("../csv_", f, ".csv"))
 }
+
+vistos = tibble(arquivo = list.files("..", "csv*")) %>% 
+    rowwise() %>%
+    do(read_csv(paste0("../", .$arquivo), 
+                col_types = cols(
+                    t = col_datetime(format = ""),
+                    mac = col_character(),
+                    signal = col_integer()
+                )))
+
+write_csv(vistos, "db_lsd_sem_perenes.csv")
