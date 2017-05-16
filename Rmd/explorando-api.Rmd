@@ -88,7 +88,7 @@ vistos = read_csv("../data/db_lsd_sem_perenes.csv",
 ```{r "ao longo do dia"}
 # contagem = conta_macs(vistos, 5)
 # write_csv(contagem, "../data/contagem_lsd.csv")
-# contagem = read_csv("../data/contagem_lsd.csv")
+contagem = read_csv("../data/contagem_lsd.csv")
 
 suavizada = contagem %>% 
     mutate(dia = floor_date(periodo, unit = "day"), 
@@ -160,6 +160,9 @@ suavizada %>%
 ```
 
 ```{r}
+#install.packages("viridis")
+library(viridis)
+
 suavizada %>% 
     filter(year(dia) == 2016) %>% 
     ggplot(aes(x = day(dia), 
@@ -209,3 +212,59 @@ suavizada %>%
     geom_point() + 
     geom_smooth()
 ```
+
+# Relógio, versão dia
+
+```{r}
+suavizada %>%
+    filter(year(periodo) == 2016) %>%
+    ggplot(aes(x = hora, y = n_smooth, group = dia, color = month(periodo))) + 
+    geom_line(alpha = .13, size = .7) +
+    scale_color_viridis(NULL, direction = -1, begin = 0.1, end = 1, option = "B") +
+    scale_x_continuous(breaks = seq(8, 19, 1), limits = c(7, 19)) +
+    scale_y_sqrt() +
+    coord_polar() + theme(axis.title.x = element_blank(),
+                          axis.text.x = element_text(size=23, family = "Helvetica", face = "bold", colour = "gray30"),
+                          axis.title.y = element_blank(),
+                          axis.text.y = element_blank())
+```
+
+
+# Relógio, versão noite
+
+```{r}
+suavizada %>%
+    filter(year(periodo) == 2016) %>%
+    ggplot(aes(x = hora, y = n_smooth, group = dia, color = month(periodo))) + 
+    geom_line(alpha = .13, size = .7) +
+    scale_color_viridis(NULL, direction = -1, begin = 0.1, end = 1, option = "D") +
+    scale_x_continuous(breaks = seq(8, 19, 1), limits = c(7, 19)) +
+    scale_y_sqrt() +
+    coord_polar() + theme(axis.title.x = element_blank(),
+                          axis.text.x = element_text(size=23, family = "Helvetica", face = "bold", colour = "gray30"),
+                          axis.title.y = element_blank(),
+                          axis.text.y = element_blank())
+```
+
+
+# Relógio sem a legenda
+
+```{r}
+suavizada %>%
+    filter(year(periodo) == 2016) %>%
+    ggplot(aes(x = hora, y = n_smooth, group = dia, color = month(periodo))) + 
+    geom_line(alpha = .13, size = .7) +
+    scale_color_viridis(NULL, direction = -1, begin = 0.1, option = "D") +
+    scale_x_continuous(breaks = seq(8, 19, 1), limits = c(7, 19)) +
+    scale_y_sqrt() +
+    coord_polar() + theme(axis.title.x = element_blank(),
+                          axis.text.x = element_text(size=42, family = "Helvetica", face = "bold", colour = "gray30"),
+                          axis.title.y = element_blank(),
+                          axis.text.y = element_blank(),
+                          legend.position = "none")
+```
+
+
+
+
+
