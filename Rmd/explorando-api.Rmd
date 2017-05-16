@@ -12,6 +12,8 @@ library(jsonlite)
 library(zoo)
 #devtools::install_github("juliasilge/silgelib")
 library(silgelib)
+#install.packages("viridis")
+library(viridis)
 theme_set(theme_roboto())
 # These fonts must be installed locally on your computer for this theme to work: https://fonts.google.com/specimen/Roboto+Condensed and https://fonts.google.com/specimen/Roboto. 
 
@@ -160,9 +162,6 @@ suavizada %>%
 ```
 
 ```{r}
-#install.packages("viridis")
-library(viridis)
-
 suavizada %>% 
     filter(year(dia) == 2016) %>% 
     ggplot(aes(x = day(dia), 
@@ -262,6 +261,7 @@ suavizada %>%
                           axis.title.y = element_blank(),
                           axis.text.y = element_blank(),
                           legend.position = "none")
+
 ```
 
 
