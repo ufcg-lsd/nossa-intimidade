@@ -249,17 +249,27 @@ suavizada %>%
 # Relógio sem a legenda
 
 ```{r}
-p <- suavizada %>%
+suavizada %>%
     filter(year(periodo) == 2016) %>%
     ggplot(aes(x = hora, y = n_smooth, group = dia, color = month(periodo))) + 
-    geom_hline(alpha = 0.5, yintercept = c(1, 5, 15, 28, 45, 75, 120), colour = "grey90", size = 3) +
+    geom_hline(alpha = 0.7, yintercept = c(5, 20, 45, 75, 115), colour = "gray80", size = 1) +
     geom_line(alpha = .15, size = .7) +
-    annotate("text", label = "1", x = 20, y = 1, size = 7, family = "Helvetica", fontface = "bold", color = "gray40") +
-    annotate("text", label = "5", x = 20, y = 5, size = 7, family = "Helvetica", fontface = "bold", color = "gray80") +
-    annotate("text", label = "15", x = 20, y = 15, size = 7, family = "Helvetica", fontface = "bold", color = "gray40") +
-    annotate("text", label = "30", x = 20, y = 30, size = 7, family = "Helvetica", fontface = "bold", color = "gray40") +
-    annotate("text", label = "45", x = 20, y = 45, size = 7, family = "Helvetica", fontface = "bold", color = "gray40") +
-    annotate("text", label = "75", x = 20, y = 75, size = 7, family = "Helvetica", fontface = "bold", color = "gray40") +
+    annotate("text", label = "5", x = 20, y = 5, size = 7, family = "Helvetica", fontface = "bold", color = "gray70") +
+    annotate("text", label = "15", x = 20, y = 20, size = 7, family = "Helvetica", fontface = "bold", color = "gray60") +
+    annotate("text", label = "45", x = 20, y = 45, size = 7, family = "Helvetica", fontface = "bold", color = "gray60") +
+    annotate("text", label = "75", x = 20, y = 75, size = 7, family = "Helvetica", fontface = "bold", color = "gray60") +
+    annotate("text", label = "5", x = 14, y = 5, size = 7, family = "Helvetica", fontface = "bold", color = "gray60") +
+    annotate("text", label = "15", x = 14, y = 20, size = 7, family = "Helvetica", fontface = "bold", color = "gray60") +
+    annotate("text", label = "45", x = 14, y = 45, size = 7, family = "Helvetica", fontface = "bold", color = "gray60") +
+    annotate("text", label = "75", x = 14, y = 75, size = 7, family = "Helvetica", fontface = "bold", color = "gray60") +
+    annotate("text", label = "5", x = 11, y = 5, size = 7, family = "Helvetica", fontface = "bold", color = "gray60") +
+    annotate("text", label = "15", x = 11, y = 20, size = 7, family = "Helvetica", fontface = "bold", color = "gray60") +
+    annotate("text", label = "45", x = 11, y = 45, size = 7, family = "Helvetica", fontface = "bold", color = "gray60") +
+    annotate("text", label = "75", x = 11, y = 75, size = 7, family = "Helvetica", fontface = "bold", color = "gray60") +
+    annotate("text", label = "5", x = 17, y = 5, size = 7, family = "Helvetica", fontface = "bold", color = "gray60") +
+    annotate("text", label = "15", x = 17, y = 20, size = 7, family = "Helvetica", fontface = "bold", color = "gray60") +
+    annotate("text", label = "45", x = 17, y = 45, size = 7, family = "Helvetica", fontface = "bold", color = "gray60") +
+    annotate("text", label = "75", x = 17, y = 75, size = 7, family = "Helvetica", fontface = "bold", color = "gray60") +
     scale_color_viridis(NULL, direction = -1, begin = 0.1, option = "D") +
     scale_x_continuous(breaks = seq(9, 20, 1), limits = c(8, 20)) +
     scale_y_sqrt() + 
@@ -269,11 +279,92 @@ p <- suavizada %>%
                           axis.text.y = element_blank(),
                           panel.grid = element_blank(),
                           legend.position = "none")
-
-p
 ```
 
 
 
+```{r}
+suavizada %>%
+    filter(year(periodo) == 2016) %>%
+    mutate(mes = cut(month(periodo), breaks = 4, labels = c("Jan-Mar", "Abr-Jun", "Jul-Set", "Out-Dez"))) %>%
+    ggplot(aes(x = hora, y = n_smooth, group = dia, color = mes)) + 
+    geom_hline(alpha = 0.7, yintercept = c(5, 20, 45, 75, 115), colour = "gray80", size = 1) +
+    geom_line(alpha = .15, size = .7) +
+    annotate("text", label = "5", x = 20, y = 5, size = 7, family = "Helvetica", fontface = "bold", color = "gray70") +
+    annotate("text", label = "15", x = 20, y = 20, size = 7, family = "Helvetica", fontface = "bold", color = "gray60") +
+    annotate("text", label = "45", x = 20, y = 45, size = 7, family = "Helvetica", fontface = "bold", color = "gray60") +
+    annotate("text", label = "75", x = 20, y = 75, size = 7, family = "Helvetica", fontface = "bold", color = "gray60") +
+    scale_color_viridis(NULL, direction = -1, begin = 0.1, option = "D", discrete = T) +
+    scale_x_continuous(breaks = seq(9, 20, 1), limits = c(8, 20)) +
+    scale_y_sqrt() + 
+    coord_polar() + theme(axis.title.x = element_blank(),
+                          axis.text.x = element_text(size = 54, family = "Helvetica", face = "bold", colour = "gray60"),
+                          axis.title.y = element_blank(),
+                          axis.text.y = element_blank(),
+                          panel.grid = element_blank(),
+                          legend.position = c(0.5, 0.21),
+                          legend.background = element_rect(color = "gray80", linetype = "solid")) +
+    guides(color = guide_legend(override.aes = list(size=3, alpha = 1)))
+```
 
+
+```{r}
+suavizada %>%
+    filter(year(periodo) == 2016) %>%
+    group_by(hour(periodo)) %>%
+    mutate(atividade.min = quantile(n_smooth, probs = 0.1),
+           atividade.max = quantile(n_smooth, probs = 0.7),
+           atividade.media = median(n_smooth)) %>%
+    ggplot(aes(x = hora, ymin = atividade.min, ymax = atividade.max, color = atividade.media)) +
+    geom_linerange(size = 1.3, alpha = 0.75) +
+    scale_y_sqrt(limits = c(-5, 50)) +
+    scale_x_continuous(breaks = seq(9, 20, 1), limits = c(8, 20)) +
+    scale_color_viridis(NULL, option = "A", direction = -1) +
+    coord_polar() + theme(axis.title.x = element_blank(),
+                          axis.text.x = element_text(size = 16, family = "Helvetica", colour = "gray60"),
+                          axis.title.y = element_blank(),
+                          axis.text.y = element_blank(),
+                          panel.grid.major.x = element_blank())
+```
+
+
+```{r}
+suavizada %>%
+    filter(year(periodo) == 2016) %>%
+    group_by(hora) %>%
+    summarise(atividade.min = quantile(n_smooth, probs = 0.1),
+           atividade.max = quantile(n_smooth, probs = 0.9),
+           atividade.media = median(n_smooth)) %>%
+    ggplot(aes(x = hora, ymin = atividade.min, ymax = atividade.max, color = atividade.media)) +
+    geom_linerange(size = 1.3, alpha = 0.75) +
+    scale_y_sqrt(limits = c(-10, 60)) +
+    scale_x_continuous(breaks = seq(9, 20, 1), limits = c(8, 20)) +
+    scale_color_viridis(NULL, option = "A", end = 0.9) +
+    coord_polar() + theme(axis.title.x = element_blank(),
+                          axis.text.x = element_text(size = 16, family = "Helvetica", colour = "gray60"),
+                          axis.title.y = element_blank(),
+                          axis.text.y = element_blank(),
+                          panel.grid.major.x = element_blank())
+```
+
+
+
+```{r}
+suavizada %>%
+    filter(year(periodo) == 2016) %>%
+    group_by(mes = month(periodo), hour(periodo)) %>%
+    mutate(atividade.min = quantile(n_smooth, probs = 0.1),
+           atividade.max = quantile(n_smooth, probs = 0.7),
+           atividade.media = median(n_smooth)) %>%
+    ggplot(aes(x = hora, ymin = atividade.min, ymax = atividade.max, color = atividade.media)) + facet_wrap(~mes) +
+    geom_linerange(size = 1.3, alpha = 0.75) +
+    scale_y_sqrt(limits = c(-5, 50)) +
+    scale_x_continuous(breaks = seq(9, 20, 1), limits = c(8, 20)) +
+    scale_color_viridis(NULL, option = "A", direction = -1) +
+    coord_polar() + theme(axis.title.x = element_blank(),
+                          axis.text.x = element_text(size = 16, family = "Helvetica", colour = "gray60"),
+                          axis.title.y = element_blank(),
+                          axis.text.y = element_blank(),
+                          panel.grid.major.x = element_blank())
+```
 
