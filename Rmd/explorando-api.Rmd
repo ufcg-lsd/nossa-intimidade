@@ -249,19 +249,28 @@ suavizada %>%
 # Relógio sem a legenda
 
 ```{r}
-suavizada %>%
+p <- suavizada %>%
     filter(year(periodo) == 2016) %>%
     ggplot(aes(x = hora, y = n_smooth, group = dia, color = month(periodo))) + 
-    geom_line(alpha = .13, size = .7) +
+    geom_hline(alpha = 0.5, yintercept = c(1, 5, 15, 28, 45, 75, 120), colour = "grey90", size = 3) +
+    geom_line(alpha = .15, size = .7) +
+    annotate("text", label = "1", x = 20, y = 1, size = 7, family = "Helvetica", fontface = "bold", color = "gray40") +
+    annotate("text", label = "5", x = 20, y = 5, size = 7, family = "Helvetica", fontface = "bold", color = "gray80") +
+    annotate("text", label = "15", x = 20, y = 15, size = 7, family = "Helvetica", fontface = "bold", color = "gray40") +
+    annotate("text", label = "30", x = 20, y = 30, size = 7, family = "Helvetica", fontface = "bold", color = "gray40") +
+    annotate("text", label = "45", x = 20, y = 45, size = 7, family = "Helvetica", fontface = "bold", color = "gray40") +
+    annotate("text", label = "75", x = 20, y = 75, size = 7, family = "Helvetica", fontface = "bold", color = "gray40") +
     scale_color_viridis(NULL, direction = -1, begin = 0.1, option = "D") +
-    scale_x_continuous(breaks = seq(8, 19, 1), limits = c(7, 19)) +
-    scale_y_sqrt() +
+    scale_x_continuous(breaks = seq(9, 20, 1), limits = c(8, 20)) +
+    scale_y_sqrt() + 
     coord_polar() + theme(axis.title.x = element_blank(),
-                          axis.text.x = element_text(size=42, family = "Helvetica", face = "bold", colour = "gray30"),
+                          axis.text.x = element_text(size = 54, family = "Helvetica", face = "bold", colour = "gray60"),
                           axis.title.y = element_blank(),
                           axis.text.y = element_blank(),
+                          panel.grid = element_blank(),
                           legend.position = "none")
 
+p
 ```
 
 
