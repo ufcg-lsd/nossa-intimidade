@@ -327,10 +327,11 @@ suavizada %>%
                           panel.grid.major.x = element_blank())
 ```
 
+# Relógio oficial
 
 ```{r}
 suavizada %>%
-    filter(year(periodo) == 2016) %>%
+    filter(year(periodo) == 2016, wday(periodo) %in% 2:6) %>%
     group_by(hora) %>%
     summarise(atividade.min = quantile(n_smooth, probs = 0.1),
            atividade.max = quantile(n_smooth, probs = 0.9),
