@@ -342,12 +342,15 @@ dados.grafico.principal <- contagens.2016 %>%
            atividade.media = median(n_smooth))
 
 dados.grafico.extremos <- contagens.2016 %>%
+    group_by(hora) %>%
+    mutate(atividade.media = median(n_smooth)) %>%
+    ungroup() %>%
     filter(n_smooth > quantile(n_smooth, 0.99))
 
 ggplot() +
     geom_hline(alpha = 0.5, yintercept = c(5, 20, 45, 75), colour = "gray90", size = 0.8) +
     geom_linerange(data = dados.grafico.principal, aes(x = hora, ymin = atividade.min, ymax = atividade.max, color = atividade.media), size = 1.3, alpha = 0.75) +
-    geom_jitter(data = dados.grafico.extremos, aes(x = hora, y = n_smooth, group = dia), alpha = 0.35, size = 1, width = 0.3, height = 0.3, color = "#FED799FF") +
+    geom_jitter(data = dados.grafico.extremos, aes(x = hora, y = n_smooth, group = dia, color = atividade.media), alpha = 0.35, size = 1.3, width = 0.3, height = 0.3) +
     annotate("text", label = "ATIVIDADE NO LSD", x = 20, y = 45, size = 10, family = "Helvetica", fontface = "bold", color = "#21908CFF") +
     annotate("text", label = "quantidade de pessoas ao longo do dia", x = 20, y = 37, size = 5, family = "Helvetica", color = "gray70") +
     annotate("text", label = "5", x = 14, y = 5, size = 5, family = "Helvetica", color = "gray80") +
