@@ -20,42 +20,7 @@ source('../R/intimidade.R')
 
 # Counts
 
-```{r ler}
-counts_raw = fromJSON("http://150.165.85.12:41205/get_today_people_count") %>% 
-    as.tibble() 
-
-counts = counts_raw %>% 
-    transmute(t = ymd_hms(timestamps), 
-              macs = data)
-```
-
-```{r filtrar}
-macs_fixos = counts %>% 
-    filter(hour(t) %in% 1:4) %>% 
-    summarise(fixos = quantile(macs, 0.8)[[1]])
-
-counts = counts %>% 
-    group_by(t) %>% 
-    mutate(pessoas = max(0, macs - macs_fixos$fixos)) %>% 
-    ungroup() %>% 
-    mutate(pessoas_mm = rollapply(pessoas, 3 , mean, align='right', fill=NA))
-
-```
-
-# Quantos somos?
-
-```{r}
-counts %>% 
-    filter(!is.na(pessoas_mm)) %>% 
-    ggplot(aes(x = t, y = pessoas_mm)) + 
-    geom_line(color = "grey") + 
-    geom_point(color = "darkred") + 
-    #geom_smooth(method = "loess", se = F) + 
-    labs(title = "Movimento, pessoas e vida no hall",
-         subtitle = "Quantas pesssoas ao longo do tempo?") 
-```
-
-# Por endereço
+##  Usando a API
 
 ```{r carrega_da_api}
 # vistos_raw = fromJSON("http://150.165.85.12:41205/get_last_minutes?m=129600") %>% 
@@ -73,6 +38,8 @@ counts %>%
 
 ```
 
+## A partir do Dump
+
 ```{r}
 vistos = read_csv("../data/db_lsd_sem_perenes.csv", 
                   col_types = cols(
@@ -80,105 +47,209 @@ vistos = read_csv("../data/db_lsd_sem_perenes.csv",
                     mac = col_character(),
                     signal = col_integer()
                 ))
-# vistos = vistos %>% 
-#     mutate(t = ymd_hms(t))
+
+# contagem = conta_macs(vistos, 5)
+contagem = read_csv("../data/contagem_lsd.csv")
 ```
 
 
 ```{r "ao longo do dia"}
-# contagem = conta_macs(vistos, 5)
-# write_csv(contagem, "../data/contagem_lsd.csv")
-# contagem = read_csv("../data/contagem_lsd.csv")
+janela_suavizacao = 15
 
 suavizada = contagem %>% 
     mutate(dia = floor_date(periodo, unit = "day"), 
            hora = (hour(periodo) * 60 + minute(periodo)) / 60, 
-           n_smooth = rollapply(n, 15 , mean, align='right', fill=NA)) %>% 
+           n_smooth = rollapply(n, janela_suavizacao , mean, align='right', fill=NA)) %>% 
     group_by(dia) %>% 
-    filter(n() > 12 * 12) %>% # 12 horas com obs a cada 5 mins
+    filter(n() > 12 * (60/janela_suavizacao)) %>% # 12 horas com obs a cada 5 mins
     ungroup() %>% 
     filter(complete.cases(.))
-
 ```
 
 
 ```{r}
+gglinhas_dos_dias = function(contagem_suavizada){
+    contagem_suavizada %>% 
+        ggplot(aes(x = hora, y = n_smooth, group = dia)) + 
+        geom_line(alpha = .15, size = .6, color = "#CC1900") + 
+        #scale_y_sqrt() + 
+        scale_x_continuous(breaks = c(8, 12, 14, 16, 18, 20), limits = c(7, 23)) + 
+        labs(x = "hora do dia", 
+             y = "pessoas pelo hall", 
+             title = "Nossos dias",
+             subtitle = "Cada linha é um dia da gente convivendo no hall")  %>% 
+        return()
+}
+
 p = suavizada %>% 
-    ggplot(aes(x = hora, y = n_smooth, group = dia)) + 
-    geom_line(alpha = .2, size = .6, color = "darkred") + 
-    scale_x_continuous(breaks = c(8, 12, 16, 18, 20), limits = c(7, 23)) + 
-    labs(x = "hora do dia", 
-         y = "pessoas", 
-         title = "Nossos dias",
-         subtitle = "Cada linha é um dia, cada dia uma história")  
-    
+    filter(wday(dia) %in% 2:6) %>% 
+    gglinhas_dos_dias() 
 p
+ggsave("dias-geral.png", dpi = 300, width = 7, height = 5)
 
 ```
 
 ```{r}
-library(scales)
+library(viridis)
+suavizada %>% 
+    #filter(month(periodo) > 8, year(periodo) > 2015) %>%
+    ggplot(aes(x = hora, y = n_smooth, group = dia, colour = month(periodo))) + 
+    geom_line(alpha = .2, size = 1) + 
+    scale_y_sqrt() + 
+    scale_color_viridis(NULL, option = "A", direction = -1) +
+    xlim(8, 20) + 
+    labs(x = "hora do dia", 
+         y = "pessoas pelo hall", 
+         title = "Nossos dias",
+         subtitle = "Cada linha é um dia da gente convivendo no hall") + 
+    coord_polar() 
+```
+
+
+```{r}
 p = suavizada %>% 
-    mutate(dia_semana = wday(dia, label = TRUE)) %>% 
-    ggplot(aes(x = hora, y = n_smooth, group = dia)) + 
-    scale_x_continuous(breaks = c(8, 12, 16, 18, 20), limits = c(7, 23)) + 
-    geom_line(alpha = .2, size = .5, color = "darkred") + 
-    facet_wrap( ~ dia_semana) + 
+    mutate(dia_semana = wday(dia, label = TRUE)) %>%
+    mutate(dia_semana = factor(dia_semana, 
+                               labels = c("Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"))) %>% 
+    gglinhas_dos_dias() + 
+    facet_grid(dia_semana ~ .) + 
     #xlim(6, 24) + 
+    labs(title = "Nem todo dia é igual",
+         subtitle = "Na semana a gente muda")  
+    
+p
+ggsave("dias-da-semana.png", dpi = 300, width = 6, height = 15)
+```
+
+```{r}
+p = suavizada %>% 
+    filter(year(dia) == 2016, wday(dia) %in% 2:6) %>% 
+    ggplot(aes(x = hora, y = n_smooth, group = dia, color = month(dia))) + 
+    geom_line(alpha = .2, size = .7) + 
+    scale_x_continuous(breaks = c(8, 12, 16, 18, 20), limits = c(7, 23)) +
+    scale_color_viridis(option = "magma", direction = -1) + 
     labs(x = "hora do dia", 
          y = "pessoas", 
          title = "Nossos dias",
-         subtitle = "Cada linha é um dia, cada dia uma história")  
-    
+         subtitle = "Cada linha é um dia. A gente convivendo no hall.")
 p
-
 ```
 
 
-Procurar: 16-09-2016 15h30
-27-09-2016 17h30
-18-10-2016 17h
+```{r}
+# pdf("teste.pdf")
+suavizada %>% 
+    mutate(dia_semana = wday(dia, label = TRUE)) %>%
+    mutate(dia_semana = factor(dia_semana, 
+                               labels = c("Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"))) %>% 
+        ggplot(aes(x = floor(hora), y = n_smooth, group = floor(hora))) + 
+        geom_boxplot(color = "#CC1900", outlier.shape = NA) + 
+        facet_grid(dia_semana ~ .) + 
+        scale_x_continuous(breaks = c(8, 12, 14, 16, 18, 20), limits = c(7, 23)) + 
+        scale_y_continuous(limits = quantile(suavizada$n_smooth, c(0.05, 0.95)))
+        labs(x = "hora do dia", 
+             y = "pessoas", 
+             title = "Nossos dias",
+             subtitle = "Cada linha é um dia. A gente convivendo no hall.")
+# dev.off()
+```
 
-09-12-2016  20h   20 anos?
-17-06-2016  20h   SJ?
 
-17-10-2016
+## Dias especiais
 
+Procurar: 
 17-02-2016 21h
 
+16-09-2016 15h30
+27-09-2016 17h30
+
+17-10-2016
+18-10-2016 17h
+
+09-12-2016  20h   20 anos
+17-06-2016  20h   SJ
+
+
 
 ```{r}
-suavizada %>% 
-    ggplot(aes(x = hora, y = n_smooth, group = dia)) + 
-    geom_line(alpha = .6, size = .6, colour = "yellow") +
-    scale_x_continuous(breaks = c(8, 12, 16, 18, 20), limits = c(7, 23)) + 
-    geom_line(data = filter(suavizada, date(dia) == ymd("2016-06-17")), alpha = 1, size = 2, colour = "darkorange") +
-    labs(x = "hora do dia", 
-         y = "pessoas", 
-         title = "Nossos dias",
-         subtitle = "Cada linha é um dia, cada dia uma história")  
+ggplot_dia_destaque <- function(dados, 
+                                dia_especial, 
+                                label_dia, 
+                                sublabel_dia,
+                                cor_sem_destaque, 
+                                cor_destaque) {
+    dados %>% 
+        ggplot(aes(x = hora, y = n_smooth, group = dia)) + 
+        geom_line(alpha = .25, size = .6, color = cor_sem_destaque) +
+        scale_x_continuous(breaks = c(8, 12, 16, 18, 20), limits = c(7, 24)) + 
+        geom_line(data = filter(suavizada, date(dia) == ymd(dia_especial)), 
+                  alpha = .9, 
+                  color = cor_destaque,
+                  size = 2) +
+        labs(x = "hora do dia", 
+             y = "pessoas", 
+             title = label_dia,
+             subtitle = sublabel_dia)  %>% 
+        return()
+}
+
+
+dia_especial = "2016-06-17"
+label_dia = "Nosso São João 2016"
+sublabel_dia = "Aqui. Parece que teve também no PP"
+cor_sem_destaque = "#00B29D"
+cor_destaque = "#FF4F00"
+
+p = suavizada %>% 
+    ggplot_dia_destaque(dia_especial, 
+                        label_dia, 
+                        sublabel_dia, 
+                        cor_sem_destaque, 
+                        cor_destaque =  "#B23904")
+p
+ggsave("dias-sj.png", dpi = 300, width = 7, height = 5)
 ```
 
+
 ```{r}
-suavizada %>% 
+p = suavizada %>% 
+    ggplot_dia_destaque(dia_especial = "2016-12-09", 
+                        label_dia = "Comemoração dos 20 anos do LSD!!", 
+                        sublabel_dia = ":D", 
+                        cor_sem_destaque, 
+                        cor_destaque = "#FF4F00")
+p 
+ggsave("dias-20anos.png", dpi = 300, width = 7, height = 5)
+```
+
+# No calendário
+
+```{r}
+p = suavizada %>% 
     filter(year(dia) == 2016) %>% 
-    ggplot(aes(x = day(dia), 
+    ggplot(aes(x = yday(dia), 
                fill = sqrt(n_smooth), 
                y = hour(periodo))) + 
     geom_tile() +
-    facet_wrap(~month(dia)) + 
+    #facet_wrap(~month(dia)) + 
     scale_fill_viridis() + 
-    xlim(7, 22) + 
-    labs(x = "dia", 
+    ylim(7, 22) + 
+    labs(x = "dia do ano", 
          y = "hora", 
-         title = "Nossos dias",
-         subtitle = "Cada linha é um dia, cada dia uma história")  
+         title = "Os dias mudando ao longo de 2016",
+         subtitle = "Cores mais claras são mais gente pelo hall") + 
+    theme(legend.position = "none")
+p 
+
+ggsave("dias-do-ano.png", dpi = 300, width = 21, height = 4)
 ```
 
 ```{r}
-suavizada %>% 
+#mixed sort gtools
+p = suavizada %>% 
     filter(year(dia) == 2016) %>%
-    mutate(mes = month(dia), 
+    filter(wday(dia) %in% 2:6) %>% 
+    mutate(mes = month(dia, label = T), 
            hora = floor(hour(periodo)), 
            dia_semana = wday(dia, label = T)) %>% 
     group_by(mes, dia_semana, hora) %>% 
@@ -191,10 +262,14 @@ suavizada %>%
     facet_wrap(~mes) +
     xlim(7, 23) + 
     scale_fill_viridis(option = "inferno") + 
-    labs(x = "do mês", 
-         y = "da semana", 
-         title = "Nossos dias",
-         subtitle = "Cada linha é um dia, cada dia uma história")  
+    labs(x = "hora do dia", 
+         y = "dia da semana", 
+         title = "Em que dia/hora da semana mais socializamos?",
+         subtitle = "Em que horário nosso espaço de encontro estava mais vivo?")  + 
+    theme(legend.position = "None")
+p 
+
+ggsave("hora-da-semana.png", dpi = 300, width = 10, height = 8)
 ```
 
 
